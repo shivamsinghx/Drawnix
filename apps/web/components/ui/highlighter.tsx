@@ -6,6 +6,8 @@ import { useInView } from "motion/react"
 import { annotate } from "rough-notation"
 import { type RoughAnnotation } from "rough-notation/lib/model"
 
+import { cn } from "@/lib/utils"
+
 type AnnotationAction =
   | "highlight"
   | "underline"
@@ -25,6 +27,7 @@ interface HighlighterProps {
   padding?: number
   multiline?: boolean
   isView?: boolean
+  className?: string
 }
 
 export function Highlighter({
@@ -37,6 +40,7 @@ export function Highlighter({
   padding = 2,
   multiline = true,
   isView = false,
+  className,
 }: HighlighterProps) {
   const elementRef = useRef<HTMLSpanElement>(null)
 
@@ -95,7 +99,10 @@ export function Highlighter({
   ])
 
   return (
-    <span ref={elementRef} className="relative inline-block bg-transparent">
+    <span
+      ref={elementRef}
+      className={cn("relative z-10 inline-block bg-transparent", className)}
+    >
       {children}
     </span>
   )

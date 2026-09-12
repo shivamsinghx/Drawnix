@@ -1,7 +1,8 @@
 import { SparklesText } from "@/components/ui/sparkles-text"
 import { Highlighter } from "@/components/ui/highlighter"
-import { EyeFollowButton } from "@/components/ui/eye-follow-button"
 import { LightRays } from "@/components/ui/light-rays"
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+import { LoginCard } from "@/components/login-card"
 
 export default function Home() {
   return (
@@ -15,12 +16,31 @@ export default function Home() {
             Think.
           </Highlighter>{" "}
             Draw.{" "}
-          <Highlighter action="highlight" color="#C7EA46">
+          <Highlighter
+            action="highlight"
+            color="#C7EA46"
+            className="text-black dark:text-black"
+          >
             Collaborate.
           </Highlighter>{" "}
-            Build with AI.
+          Build with{" "}
+          <Highlighter
+            action="circle"
+            color="#3B6FA0"
+            strokeWidth={1.5}
+            iterations={6}
+            padding={5}
+            animationDuration={900}
+            className="ml-0 inline-flex size-6 items-center justify-center leading-none"
+          >
+            <span className="translate-x-px">AI</span>
+          </Highlighter>
+          .
         </p>
-        <EyeFollowButton>See it in action</EyeFollowButton>
+        <div className="flex flex-col items-center gap-4">
+          <LoginCard />
+          <AnimatedThemeToggler />
+        </div>
       </main>
     </div>
   );

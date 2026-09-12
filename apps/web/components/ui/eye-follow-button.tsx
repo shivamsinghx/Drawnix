@@ -1,6 +1,13 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react"
 import { motion } from "motion/react"
 import { Manrope } from "next/font/google"
 
@@ -43,8 +50,11 @@ function Eye({
           backgroundColor: eyeColor,
           transformOrigin: "center",
         }}
-        animate={{ scaleY: isBlinking ? 0.3 : 1 }}
-        transition={{ duration: 0.1, ease: "easeInOut" }}
+        animate={{ scaleY: isBlinking ? 0.08 : 1 }}
+        transition={{
+          duration: isBlinking ? 0.06 : 0.14,
+          ease: isBlinking ? [0.4, 0, 1, 1] : [0.22, 1, 0.36, 1],
+        }}
       >
         <motion.div
           className="rounded-full"
@@ -52,10 +62,20 @@ function Eye({
             width: pupilSize,
             height: pupilSize,
             backgroundColor: pupilColor,
+          }}
+          animate={{
+            x: pupilPos.x,
+            y: pupilPos.y,
             opacity: isBlinking ? 0 : 1,
           }}
-          animate={{ x: pupilPos.x, y: pupilPos.y }}
-          transition={{ type: "spring", stiffness: trackingSpeed, damping: 20 }}
+          transition={{
+            x: { type: "spring", stiffness: trackingSpeed, damping: 18 },
+            y: { type: "spring", stiffness: trackingSpeed, damping: 18 },
+            opacity: {
+              duration: isBlinking ? 0.05 : 0.12,
+              ease: "easeOut",
+            },
+          }}
         />
       </motion.div>
     </div>
@@ -73,12 +93,13 @@ export function EyeFollowButton({
   eyeSize = 24,
   pupilSize: rawPupilSize = 7,
   eyeGap = 3,
-  trackingSpeed = 100,
+  trackingSpeed = 220,
   trackingRange = 90,
-  blinking = false,
-  blinkInterval = 2000,
+  blinking = true,
+  onClick,
+  ...props
 }: {
-  children?: React.ReactNode
+  children?: ReactNode
   href?: string
   className?: string
   buttonColor?: string
@@ -91,8 +112,7 @@ export function EyeFollowButton({
   trackingSpeed?: number
   trackingRange?: number
   blinking?: boolean
-  blinkInterval?: number
-}) {
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [leftPupilPos, setLeftPupilPos] = useState<PupilPos>({ x: 0, y: 0 })
   const [rightPupilPos, setRightPupilPos] = useState<PupilPos>({ x: 0, y: 0 })
@@ -110,46 +130,82 @@ export function EyeFollowButton({
   useEffect(() => {
     if (!blinking) return
 
-    let timeout: ReturnType<typeof setTimeout>
-    const interval = setInterval(() => {
+    let cancelled = false
+    const timeouts: ReturnType<typeof setTimeout>[] = []
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timeouts.push(setTimeout(resolve, ms))
+      })
+
+    const closeAndOpen = async () => {
+      if (cancelled) return
       setIsBlinking(true)
-      timeout = setTimeout(() => setIsBlinking(false), 200)
-    }, blinkInterval)
+      await wait(80 + Math.random() * 50)
+      if (cancelled) return
+      setIsBlinking(false)
+    }
+
+    const loop = async () => {
+      await wait(700 + Math.random() * 900)
+      while (!cancelled) {
+        await closeAndOpen()
+        if (cancelled) return
+        if (Math.random() < 0.38) {
+          await wait(90 + Math.random() * 80)
+          await closeAndOpen()
+        }
+        await wait(2200 + Math.random() * 4000)
+      }
+    }
+
+    void loop()
 
     return () => {
-      clearInterval(interval)
-      clearTimeout(timeout)
+      cancelled = true
+      timeouts.forEach(clearTimeout)
     }
-  }, [blinking, blinkInterval])
+  }, [blinking])
 
   useEffect(() => {
+    let frame = 0
+
     const handleMouseMove = (event: MouseEvent) => {
-      const container = containerRef.current
-      if (!container) return
+      if (frame) return
 
-      const rect = container.getBoundingClientRect()
-      const mouseX = event.clientX - (rect.left + rect.width / 2)
-      const mouseY = event.clientY - (rect.top + rect.height / 2)
+      const { clientX, clientY } = event
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        const container = containerRef.current
+        if (!container) return
 
-      const pupilFromOffset = (eyeOffsetX: number) => {
-        const relativeX = mouseX - eyeOffsetX
-        const distance = Math.hypot(relativeX, mouseY)
-        if (distance === 0) return { x: 0, y: 0 }
+        const rect = container.getBoundingClientRect()
+        const mouseX = clientX - (rect.left + rect.width / 2)
+        const mouseY = clientY - (rect.top + rect.height / 2)
 
-        const clampedDistance = Math.min(distance, maxDistance)
-        const angle = Math.atan2(mouseY, relativeX)
-        return {
-          x: Math.cos(angle) * clampedDistance,
-          y: Math.sin(angle) * clampedDistance,
+        const pupilFromOffset = (eyeOffsetX: number) => {
+          const relativeX = mouseX - eyeOffsetX
+          const distance = Math.hypot(relativeX, mouseY)
+          if (distance === 0) return { x: 0, y: 0 }
+
+          const clampedDistance = Math.min(distance, maxDistance)
+          const angle = Math.atan2(mouseY, relativeX)
+          return {
+            x: Math.cos(angle) * clampedDistance,
+            y: Math.sin(angle) * clampedDistance,
+          }
         }
-      }
 
-      setLeftPupilPos(pupilFromOffset(-eyeGap / 2))
-      setRightPupilPos(pupilFromOffset(eyeGap / 2))
+        setLeftPupilPos(pupilFromOffset(-eyeGap / 2))
+        setRightPupilPos(pupilFromOffset(eyeGap / 2))
+      })
     }
 
-    window.addEventListener("mousemove", handleMouseMove)
-    return () => window.removeEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mousemove", handleMouseMove, { passive: true })
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      cancelAnimationFrame(frame)
+    }
   }, [eyeGap, maxDistance])
 
   const content = (
@@ -213,7 +269,13 @@ export function EyeFollowButton({
   }
 
   return (
-    <button type="button" className={sharedClassName} style={sharedStyle}>
+    <button
+      type="button"
+      className={sharedClassName}
+      style={sharedStyle}
+      onClick={onClick}
+      {...props}
+    >
       {content}
     </button>
   )
