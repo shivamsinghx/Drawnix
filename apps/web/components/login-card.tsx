@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { cloneElement, isValidElement, useState, type ReactElement } from "react"
+import { signIn } from "next-auth/react"
 
 import { EyeFollowButton } from "@/components/ui/eye-follow-button"
 import { Button } from "@/components/ui/button"
@@ -54,14 +55,28 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
-export function LoginCard() {
+export function LoginCard({
+  trigger,
+}: {
+  trigger?: ReactElement<{ onClick?: () => void }>
+}) {
   const [open, setOpen] = useState(false)
+  const [pending, setPending] = useState<"google" | "github" | null>(null)
+
+  const openCard = () => setOpen(true)
+
+  const login = async (provider: "google" | "github") => {
+    setPending(provider)
+    await signIn(provider, { callbackUrl: "/dashboard" })
+  }
 
   return (
     <>
-      <EyeFollowButton onClick={() => setOpen(true)}>
-        See it in action
-      </EyeFollowButton>
+      {trigger && isValidElement(trigger) ? (
+        cloneElement(trigger, { onClick: openCard })
+      ) : (
+        <EyeFollowButton onClick={openCard}>See it in action</EyeFollowButton>
+      )}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           className="overflow-hidden bg-transparent p-0 ring-0 sm:max-w-md"
@@ -81,17 +96,21 @@ export function LoginCard() {
                 type="button"
                 variant="outline"
                 className="h-9 w-full gap-2"
+                disabled={pending !== null}
+                onClick={() => login("google")}
               >
                 <GoogleIcon className="size-4" />
-                Login with Google
+                {pending === "google" ? "Connecting Google..." : "Login with Google"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="h-9 w-full gap-2"
+                disabled={pending !== null}
+                onClick={() => login("github")}
               >
                 <GitHubIcon className="size-4" />
-                Login with GitHub
+                {pending === "github" ? "Connecting GitHub..." : "Login with GitHub"}
               </Button>
               <div className="relative py-1">
                 <div className="absolute inset-0 flex items-center">
