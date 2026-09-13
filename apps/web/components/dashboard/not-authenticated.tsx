@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 
 export function NotAuthenticated() {
   return (
-    <div className="relative flex min-h-svh flex-1 items-center justify-center overflow-hidden bg-zinc-50 px-6 dark:bg-black">
+    <div className="relative flex min-h-svh flex-1 items-center justify-center overflow-hidden px-6">
       <LightRays length="100vh" />
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }}

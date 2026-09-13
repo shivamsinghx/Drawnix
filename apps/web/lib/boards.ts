@@ -54,3 +54,27 @@ export function touchBoard(userId: string, boardId: string) {
   )
   writeBoards(userId, boards)
 }
+
+function canvasKey(userId: string, boardId: string) {
+  return `drawnix.canvas.${userId}.${boardId}`
+}
+
+export function deleteBoards(userId: string, boardIds: string[]) {
+  if (boardIds.length === 0) return listBoards(userId)
+
+  const remove = new Set(boardIds)
+  writeBoards(
+    userId,
+    readBoards(userId).filter((board) => !remove.has(board.id))
+  )
+
+  for (const boardId of boardIds) {
+    try {
+      window.localStorage.removeItem(canvasKey(userId, boardId))
+    } catch {
+      // Ignore storage errors so the board list still updates.
+    }
+  }
+
+  return listBoards(userId)
+}

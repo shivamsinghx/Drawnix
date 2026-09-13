@@ -10,6 +10,7 @@ import "tldraw/tldraw.css"
 
 import { getBoard, touchBoard, type Board } from "@/lib/boards"
 import { buttonVariants } from "@/components/ui/button"
+import { DrawnixToolbar } from "@/components/canvas/drawnix-toolbar"
 
 export function CanvasClient({
   boardId,
@@ -67,8 +68,11 @@ export function CanvasClient({
           </div>
         </div>
       </motion.header>
-      <div className="relative min-h-0 flex-1">
-        <Tldraw persistenceKey={persistenceKey} />
+      <div className="drawnix-dock relative min-h-0 flex-1">
+        <Tldraw
+          persistenceKey={persistenceKey}
+          components={{ Toolbar: DrawnixToolbar }}
+        />
       </div>
     </div>
   )
