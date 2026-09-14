@@ -1,14 +1,13 @@
 import { SparklesText } from "@/components/ui/sparkles-text"
 import { Highlighter } from "@/components/ui/highlighter"
-import { LightRays } from "@/components/ui/light-rays"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { LoginCard } from "@/components/login-card"
+import { BackgroundLines } from "@/components/ui/background-lines"
 
 export default function Home() {
   return (
-    <div className="relative flex min-h-svh flex-1 flex-col items-center justify-center overflow-hidden bg-zinc-50 font-sans dark:bg-black">
-      <LightRays length="100vh" />
-      <main className="relative z-10 flex flex-1 w-full flex-col items-center justify-center gap-8">
+    <BackgroundLines className="flex h-auto min-h-svh w-full flex-col items-center justify-center bg-zinc-50 px-4 font-sans dark:bg-black">
+      <main className="relative z-20 flex w-full flex-1 flex-col items-center justify-center gap-8">
         <SparklesText className="font-sans">Drawnix</SparklesText>
         <p>
           {" "}
@@ -42,6 +41,6 @@ export default function Home() {
           <AnimatedThemeToggler />
         </div>
       </main>
-    </div>
+    </BackgroundLines>
   );
 }
