@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthSessionProvider } from "@/components/session-provider";
 import "./globals.css";
@@ -18,7 +19,11 @@ export const metadata: Metadata = {
   description: "Think. Draw. Collaborate. Build with AI.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: ReactNode
+}>) {
   return (
     <html
       lang="en"
