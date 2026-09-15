@@ -243,6 +243,43 @@
   color: #fff;
 }
 
+.drawnix-palette-mixes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 8px 8px 4px;
+}
+
+.drawnix-palette-mix {
+  height: 26px;
+  border: 1px solid var(--tl-color-divider, rgba(15, 23, 42, 0.1));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tl-color-text-1, #111827);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+
+.drawnix-palette-mix:hover {
+  background: var(--tl-color-muted-2, rgba(15, 23, 42, 0.06));
+}
+
+.drawnix-palette-mix.is-active {
+  background: var(--tl-color-selected, #3b82f6);
+  border-color: transparent;
+  color: #fff;
+}
+
+.tlui-style-panel .tlui-style-panel__subheading {
+  color: var(--tl-color-text-3, #6b7280);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 @media (max-width: 640px) {
   .drawnix-floating-dock {
     bottom: 14px;

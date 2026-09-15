@@ -8,7 +8,19 @@ import { motion } from "motion/react"
 import "tldraw/tldraw.css"
 
 import { buttonVariants } from "@/components/ui/button"
+import { DrawnixStylePanel } from "@/components/canvas/drawnix-style-panel"
 import { DrawnixToolbar } from "@/components/canvas/drawnix-toolbar"
+import {
+  createDrawnixTheme,
+  drawnixThemes,
+  drawnixUiOverrides,
+  getSavedPaletteMix,
+} from "@/components/canvas/drawnix-theme"
+
+const canvasComponents = {
+  Toolbar: DrawnixToolbar,
+  StylePanel: DrawnixStylePanel,
+}
 
 const SAVE_DELAY_MS = 800
 
@@ -102,9 +114,15 @@ export function CanvasClient({
       <div className="drawnix-dock relative min-h-0 flex-1">
         <Tldraw
           snapshot={snapshot as TLEditorSnapshot | undefined}
-          components={{ Toolbar: DrawnixToolbar }}
+          components={canvasComponents}
+          themes={drawnixThemes}
+          overrides={drawnixUiOverrides}
           onMount={(editor) => {
             editorRef.current = editor
+            const mix = getSavedPaletteMix()
+            if (mix !== "classic") {
+              editor.updateTheme(createDrawnixTheme(mix))
+            }
             lastSaved.current = JSON.stringify(editor.getSnapshot())
             editor.store.listen(
               () => {
