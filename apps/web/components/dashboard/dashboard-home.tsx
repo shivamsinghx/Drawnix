@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { signOut } from "next-auth/react"
 import { motion } from "motion/react"
 import { CheckSquare, LogOut, Trash2 } from "lucide-react"
 
-import { deleteBoards, listBoards, type Board } from "@/lib/boards"
+import { type Board } from "@/lib/boards"
 import { LightRays } from "@/components/ui/light-rays"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -29,15 +29,17 @@ type DashboardUser = {
   image?: string | null
 }
 
-export function DashboardHome({ user }: { user: DashboardUser }) {
-  const [boards, setBoards] = useState<Board[] | null>(null)
+export function DashboardHome({
+  user,
+  initialBoards,
+}: {
+  user: DashboardUser
+  initialBoards: Board[]
+}) {
+  const [boards, setBoards] = useState<Board[]>(initialBoards)
   const [selecting, setSelecting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [confirmOpen, setConfirmOpen] = useState(false)
-
-  useEffect(() => {
-    setBoards(listBoards(user.id))
-  }, [user.id])
 
   const initials = useMemo(() => {
     const source = user.name?.trim() || user.email?.trim() || "D"
@@ -67,9 +69,18 @@ export function DashboardHome({ user }: { user: DashboardUser }) {
     setConfirmOpen(false)
   }
 
-  const confirmDelete = () => {
-    const remaining = deleteBoards(user.id, selectedIds)
-    setBoards(remaining)
+  const confirmDelete = async () => {
+    const response = await fetch("/api/boards", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: selectedIds }),
+    })
+    const payload = (await response.json().catch(() => null)) as
+      | { boards?: Board[] }
+      | null
+    if (response.ok && payload?.boards) {
+      setBoards(payload.boards)
+    }
     exitSelecting()
   }
 
@@ -113,10 +124,8 @@ export function DashboardHome({ user }: { user: DashboardUser }) {
         </motion.header>
 
         <main className="flex flex-1 flex-col justify-center py-12">
-          {boards === null ? (
-            <div className="h-64 animate-pulse rounded-3xl bg-muted/60" />
-          ) : boards.length === 0 ? (
-            <EmptyBoards userId={user.id} />
+          {boards.length === 0 ? (
+            <EmptyBoards />
           ) : (
             <div className="space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -163,7 +172,7 @@ export function DashboardHome({ user }: { user: DashboardUser }) {
                       Select
                     </Button>
                   )}
-                  <NewBoardButton userId={user.id} />
+                  <NewBoardButton />
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -201,8 +210,8 @@ export function DashboardHome({ user }: { user: DashboardUser }) {
             </DialogTitle>
             <DialogDescription>
               This removes the selected board
-              {selectedCount === 1 ? "" : "s"} and their drawings from this
-              browser. This cannot be undone.
+              {selectedCount === 1 ? "" : "s"} and their drawings from your
+              workspace. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {selectedTitles.length > 0 ? (

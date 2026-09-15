@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react"
 
 import { NewBoardButton } from "@/components/dashboard/new-board-button"
 
-export function EmptyBoards({ userId }: { userId: string }) {
+export function EmptyBoards() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -34,7 +34,7 @@ export function EmptyBoards({ userId }: { userId: string }) {
         and Drawnix will keep it in your workspace.
       </p>
       <div className="mt-8 flex justify-center">
-        <NewBoardButton userId={userId} size="lg" />
+        <NewBoardButton size="lg" />
       </div>
     </motion.div>
   )

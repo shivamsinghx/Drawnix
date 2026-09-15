@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { motion } from "motion/react"
 import { Plus } from "lucide-react"
 
-import { createBoard } from "@/lib/boards"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -19,11 +18,10 @@ import {
 import { cn } from "@/lib/utils"
 
 export function NewBoardButton({
-  userId,
   size = "default",
   className,
 }: {
-  userId: string
+  userId?: string
   size?: "default" | "lg"
   className?: string
 }) {
@@ -31,21 +29,45 @@ export function NewBoardButton({
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const reset = () => {
     setTitle("")
     setPending(false)
+    setError(null)
   }
 
-  const create = () => {
+  const create = async () => {
     const name = title.trim()
     if (!name || pending) return
 
     setPending(true)
-    const board = createBoard(userId, name)
-    setOpen(false)
-    reset()
-    router.push(`/canvas/${board.id}`)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/boards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      })
+      const payload = (await response.json().catch(() => null)) as
+        | { board?: { id: string }; error?: string }
+        | null
+
+      if (!response.ok || !payload?.board?.id) {
+        setError(payload?.error ?? "Could not create board")
+        setPending(false)
+        return
+      }
+
+      setOpen(false)
+      reset()
+      router.push(`/canvas/${payload.board.id}`)
+      router.refresh()
+    } catch {
+      setError("Could not create board")
+      setPending(false)
+    }
   }
 
   return (
@@ -78,7 +100,7 @@ export function NewBoardButton({
             className="grid gap-4"
             onSubmit={(event) => {
               event.preventDefault()
-              create()
+              void create()
             }}
           >
             <DialogHeader>
@@ -97,6 +119,9 @@ export function NewBoardButton({
                 disabled={pending}
                 maxLength={80}
               />
+              {error ? (
+                <p className="mt-2 text-sm text-destructive">{error}</p>
+              ) : null}
             </div>
             <DialogFooter>
               <Button

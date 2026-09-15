@@ -1,20 +1,36 @@
 import { redirect } from "next/navigation"
 
-import { auth } from "@/lib/auth"
 import { CanvasClient } from "@/components/canvas/canvas-client"
+import { getAccessibleBoard } from "@/lib/board-service"
+import { getCurrentUser } from "@/lib/current-user"
+
+function toSnapshot(data: unknown) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return undefined
+  if (!("document" in data)) return undefined
+  return data
+}
 
 export default async function CanvasPage({
   params,
 }: {
   params: Promise<{ boardId: string }>
 }) {
-  const session = await auth()
-  if (!session?.user) {
+  const user = await getCurrentUser()
+  if (!user) {
     redirect("/dashboard")
   }
 
   const { boardId } = await params
-  const userId = session.user.email ?? session.user.name ?? "local"
+  const board = await getAccessibleBoard(user.id, boardId)
+  if (!board) {
+    redirect("/dashboard")
+  }
 
-  return <CanvasClient boardId={boardId} userId={userId} />
+  return (
+    <CanvasClient
+      boardId={board.id}
+      boardName={board.name}
+      snapshot={toSnapshot(board.data)}
+    />
+  )
 }

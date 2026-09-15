@@ -37,3 +37,23 @@ export type Session = Prisma.SessionModel
  * 
  */
 export type VerificationToken = Prisma.VerificationTokenModel
+/**
+ * Model Workspace
+ * 
+ */
+export type Workspace = Prisma.WorkspaceModel
+/**
+ * Model Board
+ * 
+ */
+export type Board = Prisma.BoardModel
+/**
+ * Model BoardMember
+ * 
+ */
+export type BoardMember = Prisma.BoardMemberModel
+/**
+ * Model BoardContent
+ * 
+ */
+export type BoardContent = Prisma.BoardContentModel

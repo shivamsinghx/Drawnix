@@ -1,21 +1,23 @@
-import { auth } from "@/lib/auth"
 import { NotAuthenticated } from "@/components/dashboard/not-authenticated"
 import { DashboardHome } from "@/components/dashboard/dashboard-home"
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern"
+import { listBoards } from "@/lib/board-service"
+import { getCurrentUser } from "@/lib/current-user"
 
 export default async function DashboardPage() {
-  const session = await auth()
+  const user = await getCurrentUser()
 
-  const content = !session?.user ? (
+  const content = !user ? (
     <NotAuthenticated />
   ) : (
     <DashboardHome
       user={{
-        id: session.user.email ?? session.user.name ?? "local",
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
       }}
+      initialBoards={await listBoards(user.id)}
     />
   )
 
