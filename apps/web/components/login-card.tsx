@@ -17,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 
 function GitHubIcon({ className }: { className?: string }) {
   return (
@@ -112,29 +111,6 @@ export function LoginCard({
                 <GitHubIcon className="size-4" />
                 {pending === "github" ? "Connecting GitHub..." : "Login with GitHub"}
               </Button>
-              <div className="relative py-1">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">or</span>
-                </div>
-              </div>
-              <form
-                className="flex flex-col gap-3"
-                onSubmit={(event) => event.preventDefault()}
-              >
-                <Input
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  placeholder="Email"
-                  aria-label="Email"
-                />
-                <Button type="submit" className="h-9 w-full">
-                  Continue
-                </Button>
-              </form>
             </CardContent>
           </Card>
         </DialogContent>
