@@ -1,14 +1,10 @@
 import { redirect } from "next/navigation"
 
 import { CanvasClient } from "@/components/canvas/canvas-client"
-import { getAccessibleBoard } from "@/lib/board-service"
+import { getBoardCollaborationAccess } from "@/lib/board-service"
 import { getCurrentUser } from "@/lib/current-user"
-
-function toSnapshot(data: unknown) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) return undefined
-  if (!("document" in data)) return undefined
-  return data
-}
+import { presenceColorForUser } from "@/lib/presence-color"
+import { getPublicTldrawSyncUrl } from "@/lib/sync-config"
 
 export default async function CanvasPage({
   params,
@@ -21,16 +17,21 @@ export default async function CanvasPage({
   }
 
   const { boardId } = await params
-  const board = await getAccessibleBoard(user.id, boardId)
-  if (!board) {
+  const access = await getBoardCollaborationAccess(user.id, boardId)
+  if (!access) {
     redirect("/dashboard")
   }
 
   return (
     <CanvasClient
-      boardId={board.id}
-      boardName={board.name}
-      snapshot={toSnapshot(board.data)}
+      boardId={access.board.id}
+      boardName={access.board.name}
+      userId={user.id}
+      userName={user.name?.trim() || user.email?.trim() || "Collaborator"}
+      userColor={presenceColorForUser(user.id)}
+      role={access.role}
+      canEdit={access.canEdit}
+      syncUrl={getPublicTldrawSyncUrl()}
     />
   )
 }

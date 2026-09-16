@@ -55,6 +55,9 @@ export async function PATCH(
   }
 
   const updated = await saveBoardData(user.id, boardId, data)
+  if (updated === "forbidden") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
   if (!updated) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }

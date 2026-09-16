@@ -1,6 +1,20 @@
 import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 import type { Board } from "@/lib/boards"
+import {
+  canEditRole,
+  normalizeBoardRole,
+  type BoardRole,
+} from "@/shared/sync-token"
+
+export type BoardCollaborationAccess = {
+  board: {
+    id: string
+    name: string
+  }
+  role: BoardRole
+  canEdit: boolean
+}
 
 function toBoard(row: {
   id: string
@@ -97,20 +111,73 @@ export async function getAccessibleBoard(userId: string, boardId: string) {
   })
 }
 
+export async function getBoardCollaborationAccess(
+  userId: string,
+  boardId: string
+): Promise<BoardCollaborationAccess | null> {
+  const board = await prisma.board.findFirst({
+    where: {
+      id: boardId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      workspace: { select: { ownerId: true } },
+      members: {
+        where: { userId },
+        select: { role: true },
+        take: 1,
+      },
+    },
+  })
+
+  if (!board) return null
+
+  const isWorkspaceOwner = board.workspace.ownerId === userId
+  const memberRole = board.members[0]?.role
+  if (!isWorkspaceOwner && !memberRole) return null
+
+  const role = isWorkspaceOwner ? "owner" : normalizeBoardRole(memberRole)
+  return {
+    board: { id: board.id, name: board.name },
+    role,
+    canEdit: canEditRole(role),
+  }
+}
+
+export async function getBoardSnapshot(boardId: string) {
+  return prisma.board.findFirst({
+    where: { id: boardId, deletedAt: null },
+    select: { id: true, data: true },
+  })
+}
+
+export async function cacheBoardSnapshot(
+  boardId: string,
+  data: Prisma.InputJsonValue
+) {
+  const existing = await prisma.board.findFirst({
+    where: { id: boardId, deletedAt: null },
+    select: { id: true },
+  })
+  if (!existing) return null
+
+  return prisma.board.update({
+    where: { id: boardId },
+    data: { data },
+    select: { id: true, updatedAt: true },
+  })
+}
+
 export async function saveBoardData(
   userId: string,
   boardId: string,
   data: Prisma.InputJsonValue
 ) {
-  const existing = await prisma.board.findFirst({
-    where: {
-      id: boardId,
-      ...accessibleWhere(userId),
-    },
-    select: { id: true },
-  })
-
-  if (!existing) return null
+  const access = await getBoardCollaborationAccess(userId, boardId)
+  if (!access) return null
+  if (!access.canEdit) return "forbidden" as const
 
   return prisma.board.update({
     where: { id: boardId },

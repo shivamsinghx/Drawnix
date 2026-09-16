@@ -1,0 +1,28 @@
+{
+  // Local development: npm run sync:dev
+  // Do not deploy this worker unless you intentionally set up Cloudflare.
+  "name": "drawnix-sync",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TLDRAW_DURABLE_OBJECT",
+        "class_name": "TldrawDurableObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["TldrawDurableObject"]
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "TLDRAW_BUCKET",
+      "bucket_name": "drawnix-sync-assets"
+    }
+  ]
+}
