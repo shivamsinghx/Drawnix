@@ -1,6 +1,12 @@
 "use client"
 
-import { cloneElement, isValidElement, useState, type ReactElement } from "react"
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useState,
+  type ReactElement,
+} from "react"
 import { signIn } from "next-auth/react"
 
 import { EyeFollowButton } from "@/components/ui/eye-follow-button"
@@ -54,18 +60,52 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
+function messageForAuthError(error: string | null | undefined) {
+  switch (error) {
+    case "OAuthAccountNotLinked":
+      return "This Google or GitHub login is already connected to a different Drawnix account. Sign out, then try the provider you used originally."
+    case "UnverifiedEmail":
+      return "Google and GitHub need a verified email on the account. Verify an email there, then try again."
+    case "OAuthCallback":
+    case "OAuthCallbackError":
+    case "Callback":
+      return "Sign-in was interrupted. Try Google or GitHub again."
+    case "AccessDenied":
+      return "Access was denied. Try another account, or grant email access and retry."
+    case "OAuthSignin":
+    case "OAuthCreateAccount":
+      return "Could not create your account. Try the other provider, or retry in a moment."
+    case "Configuration":
+      return "Sign-in is misconfigured. Try again in a moment."
+    default:
+      return error ? "Could not sign in. Try Google or GitHub again." : null
+  }
+}
+
 export function LoginCard({
   trigger,
+  authError,
 }: {
   trigger?: ReactElement<{ onClick?: () => void }>
+  authError?: string | null
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(Boolean(authError))
   const [pending, setPending] = useState<"google" | "github" | null>(null)
+  const [errorText, setErrorText] = useState(() => messageForAuthError(authError))
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const error = url.searchParams.get("error") ?? authError ?? null
+    if (!error) return
+    setErrorText(messageForAuthError(error))
+    setOpen(true)
+  }, [authError])
 
   const openCard = () => setOpen(true)
 
   const login = async (provider: "google" | "github") => {
     setPending(provider)
+    setErrorText(null)
     await signIn(provider, { callbackUrl: "/dashboard" })
   }
 
@@ -91,6 +131,14 @@ export function LoginCard({
               </DialogHeader>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
+              {errorText ? (
+                <p
+                  role="alert"
+                  className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                >
+                  {errorText}
+                </p>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"

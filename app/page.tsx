@@ -3,7 +3,19 @@ import { Highlighter } from "@/components/ui/highlighter"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { LoginCard } from "@/components/login-card"
 
-export default function Home() {
+function firstQueryValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0]
+  return value
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string | string[] }> | { error?: string | string[] }
+}) {
+  const params = searchParams ? await searchParams : {}
+  const authError = firstQueryValue(params.error)
+
   return (
     <div className="relative flex min-h-svh flex-1 flex-col items-center justify-center overflow-hidden bg-zinc-50 px-4 font-sans dark:bg-black">
       <main className="relative z-10 flex w-full flex-1 flex-col items-center justify-center gap-8">
@@ -36,7 +48,7 @@ export default function Home() {
           .
         </p>
         <div className="flex flex-col items-center gap-4">
-          <LoginCard />
+          <LoginCard authError={authError} />
           <AnimatedThemeToggler />
         </div>
       </main>
