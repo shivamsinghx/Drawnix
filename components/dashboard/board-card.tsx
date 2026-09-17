@@ -80,12 +80,12 @@ export function BoardCard({
           type="button"
           onClick={() => onToggle?.(board.id)}
           aria-pressed={selected}
-          className="block w-full text-left"
+          className="block w-full cursor-pointer text-left"
         >
           {card}
         </button>
       ) : (
-        <Link href={`/canvas/${board.id}`} className="block">
+        <Link href={`/canvas/${board.id}`} className="block cursor-pointer">
           {card}
         </Link>
       )}
@@ -93,7 +93,7 @@ export function BoardCard({
         <button
           type="button"
           aria-label={`Delete ${board.title}`}
-          className="absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full border border-foreground/10 bg-background/90 text-muted-foreground opacity-0 shadow-sm transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+          className="absolute top-3 right-3 z-10 flex size-8 cursor-pointer items-center justify-center rounded-full border border-foreground/10 bg-background/90 text-muted-foreground opacity-0 shadow-sm transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
           onClick={() => onDelete?.(board.id)}
         >
           <Trash2 className="size-3.5" />

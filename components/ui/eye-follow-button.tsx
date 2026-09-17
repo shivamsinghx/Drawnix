@@ -249,7 +249,7 @@ export function EyeFollowButton({
   )
 
   const sharedClassName = cn(
-    "inline-flex items-center justify-center gap-3 no-underline",
+    "inline-flex cursor-pointer items-center justify-center gap-3 no-underline",
     className
   )
   const sharedStyle = {

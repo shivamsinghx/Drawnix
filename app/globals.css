@@ -46,6 +46,7 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --cursor-pointer: var(--drawnix-cursor-pointer);
   --animate-rippling: rippling var(--duration) ease-out;
   @keyframes rippling {
   0% {
@@ -70,6 +71,7 @@
     background-position: 200%;}}}
 
 :root {
+  --drawnix-cursor-pointer: url("/cursors/pointing-hand.png") 9 1, pointer;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -158,6 +160,34 @@
   html {
     @apply font-sans;
   }
+
+  :where(
+      a[href],
+      button,
+      [role="button"],
+      [role="link"],
+      [role="menuitem"],
+      [role="menuitemcheckbox"],
+      [role="menuitemradio"],
+      [role="option"],
+      [role="tab"],
+      [role="switch"],
+      [role="checkbox"],
+      [role="radio"],
+      [role="combobox"],
+      summary,
+      label[for],
+      select,
+      input[type="button"],
+      input[type="submit"],
+      input[type="reset"],
+      input[type="image"],
+      input[type="checkbox"],
+      input[type="radio"],
+      input[type="file"]
+    ):not(:disabled):not([aria-disabled="true"]) {
+    cursor: var(--drawnix-cursor-pointer);
+  }
 }
   ::view-transition-old(root), ::view-transition-new(root) {
     animation: none;
@@ -200,7 +230,7 @@
   border-radius: 999px;
   background: transparent;
   color: #111827;
-  cursor: pointer;
+  cursor: var(--drawnix-cursor-pointer);
 }
 
 .drawnix-dock-btn svg {
@@ -259,7 +289,7 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  cursor: pointer;
+  cursor: var(--drawnix-cursor-pointer);
 }
 
 .drawnix-palette-mix:hover {
@@ -296,4 +326,8 @@
     width: 16px;
     height: 16px;
   }
+}
+
+.cursor-pointer {
+  cursor: var(--drawnix-cursor-pointer);
 }
