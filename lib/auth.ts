@@ -1,5 +1,7 @@
+import { cookies } from "next/headers"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { Prisma } from "@/generated/prisma/client"
+import { emailsAllowMerge, mergeAuthUsers } from "@/lib/merge-auth-users"
 import { prisma } from "@/lib/prisma"
 
 import NextAuth from "next-auth"
@@ -160,12 +162,79 @@ async function oauthEmailIsVerified(
   return normalizeEmail(verifiedEmail.email) === profileEmail
 }
 
+const SESSION_COOKIE_NAMES = [
+  "authjs.session-token",
+  "__Secure-authjs.session-token",
+]
+
+async function getSessionRecord() {
+  try {
+    const store = await cookies()
+    for (const name of SESSION_COOKIE_NAMES) {
+      const token = store.get(name)?.value
+      if (!token) continue
+      const session = await prisma.session.findUnique({
+        where: { sessionToken: token },
+        select: {
+          sessionToken: true,
+          userId: true,
+          expires: true,
+        },
+      })
+      if (session && session.expires > new Date()) return session
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+async function findUserByEmail(email: string) {
+  return prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, email: true },
+  })
+}
+
+async function absorbUserIfNeeded(
+  keepUserId: string,
+  otherUserId: string | null | undefined,
+  incomingEmail: string | null
+) {
+  if (!otherUserId || otherUserId === keepUserId) return keepUserId
+
+  const [keep, other] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: keepUserId },
+      select: { id: true, email: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: otherUserId },
+      select: { id: true, email: true },
+    }),
+  ])
+  if (!keep) return otherUserId
+  if (!other) return keepUserId
+
+  if (!emailsAllowMerge(keep.email, other.email, incomingEmail)) {
+    return null
+  }
+
+  return mergeAuthUsers(keepUserId, otherUserId)
+}
+
 async function linkVerifiedOAuthToExistingUser(
   userEmail: string | null | undefined,
   account: Account | null,
   profile: Profile | undefined
 ) {
   if (!account?.provider || !account.providerAccountId) return true
+
+  const incomingEmail = normalizeEmail(userEmail ?? profile?.email)
+  const verified = incomingEmail
+    ? await oauthEmailIsVerified(account.provider, profile, account)
+    : false
 
   const existingAccount = await prisma.account.findUnique({
     where: {
@@ -174,24 +243,45 @@ async function linkVerifiedOAuthToExistingUser(
         providerAccountId: account.providerAccountId,
       },
     },
-    select: { id: true },
+    select: { userId: true },
   })
+  const emailOwner = incomingEmail ? await findUserByEmail(incomingEmail) : null
+  const session = await getSessionRecord()
+
+  if (!existingAccount && !incomingEmail) return "/?error=UnverifiedEmail"
+  if (!existingAccount && !verified) return "/?error=UnverifiedEmail"
+
+  if (session?.userId) {
+    const mergedEmailOwner = await absorbUserIfNeeded(
+      session.userId,
+      emailOwner?.id,
+      incomingEmail
+    )
+    if (mergedEmailOwner === null) {
+      await prisma.session.deleteMany({
+        where: { sessionToken: session.sessionToken },
+      })
+    } else {
+      const mergedOAuthOwner = await absorbUserIfNeeded(
+        session.userId,
+        existingAccount?.userId,
+        incomingEmail
+      )
+      if (mergedOAuthOwner === null) {
+        await prisma.session.deleteMany({
+          where: { sessionToken: session.sessionToken },
+        })
+      }
+    }
+    return true
+  }
+
   if (existingAccount) return true
 
-  const email = normalizeEmail(userEmail ?? profile?.email)
-  if (!email) return "/?error=UnverifiedEmail"
+  if (emailOwner) {
+    await persistOAuthAccount(emailOwner.id, account)
+  }
 
-  const verified = await oauthEmailIsVerified(account.provider, profile, account)
-  if (!verified) return "/?error=UnverifiedEmail"
-
-  const existingUser = await prisma.user.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
-    orderBy: { createdAt: "asc" },
-    select: { id: true },
-  })
-  if (!existingUser) return true
-
-  await persistOAuthAccount(existingUser.id, account)
   return true
 }
 

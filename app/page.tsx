@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation"
 import { SparklesText } from "@/components/ui/sparkles-text"
 import { Highlighter } from "@/components/ui/highlighter"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { LoginCard } from "@/components/login-card"
+import { auth } from "@/lib/auth"
 
 function firstQueryValue(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0]
@@ -15,6 +17,10 @@ export default async function Home({
 }) {
   const params = searchParams ? await searchParams : {}
   const authError = firstQueryValue(params.error)
+  const session = await auth()
+  if (session?.user && !authError) {
+    redirect("/dashboard")
+  }
 
   return (
     <div className="relative flex min-h-svh flex-1 flex-col items-center justify-center overflow-hidden bg-zinc-50 px-4 font-sans dark:bg-black">

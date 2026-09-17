@@ -63,7 +63,7 @@ function GoogleIcon({ className }: { className?: string }) {
 function messageForAuthError(error: string | null | undefined) {
   switch (error) {
     case "OAuthAccountNotLinked":
-      return "This Google or GitHub login is already connected to a different Drawnix account. Sign out, then try the provider you used originally."
+      return "This Google or GitHub login is already used on another Drawnix account. Try the other button, or sign in again."
     case "UnverifiedEmail":
       return "Google and GitHub need a verified email on the account. Verify an email there, then try again."
     case "OAuthCallback":
