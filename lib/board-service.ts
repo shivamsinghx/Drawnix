@@ -14,6 +14,7 @@ export type BoardCollaborationAccess = {
   }
   role: BoardRole
   canEdit: boolean
+  hasLegacySnapshot: boolean
 }
 
 function toBoard(row: {
@@ -115,34 +116,41 @@ export async function getBoardCollaborationAccess(
   userId: string,
   boardId: string
 ): Promise<BoardCollaborationAccess | null> {
-  const board = await prisma.board.findFirst({
-    where: {
-      id: boardId,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      name: true,
-      workspace: { select: { ownerId: true } },
-      members: {
-        where: { userId },
-        select: { role: true },
-        take: 1,
-      },
-    },
-  })
+  const rows = await prisma.$queryRaw<
+    Array<{
+      id: string
+      name: string
+      ownerId: string
+      memberRole: string | null
+      hasLegacy: boolean
+    }>
+  >`
+    SELECT
+      b.id,
+      b.name,
+      w."ownerId" AS "ownerId",
+      m.role AS "memberRole",
+      (b.data IS NOT NULL AND b.data <> '{}'::jsonb) AS "hasLegacy"
+    FROM "Board" b
+    INNER JOIN "Workspace" w ON w.id = b."workspaceId"
+    LEFT JOIN "BoardMember" m
+      ON m."boardId" = b.id AND m."userId" = ${userId}
+    WHERE b.id = ${boardId} AND b."deletedAt" IS NULL
+    LIMIT 1
+  `
 
+  const board = rows[0]
   if (!board) return null
 
-  const isWorkspaceOwner = board.workspace.ownerId === userId
-  const memberRole = board.members[0]?.role
-  if (!isWorkspaceOwner && !memberRole) return null
+  const isWorkspaceOwner = board.ownerId === userId
+  if (!isWorkspaceOwner && !board.memberRole) return null
 
-  const role = isWorkspaceOwner ? "owner" : normalizeBoardRole(memberRole)
+  const role = isWorkspaceOwner ? "owner" : normalizeBoardRole(board.memberRole)
   return {
     board: { id: board.id, name: board.name },
     role,
     canEdit: canEditRole(role),
+    hasLegacySnapshot: Boolean(board.hasLegacy),
   }
 }
 

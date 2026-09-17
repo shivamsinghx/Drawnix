@@ -32,9 +32,6 @@ export class TldrawDurableObject extends DurableObject<Env> {
     this.ctx.setWebSocketAutoResponse(
       new WebSocketRequestResponsePair('{"type":"ping"}', '{"type":"pong"}')
     )
-    this.ctx.blockConcurrencyWhile(async () => {
-      this.roomId = ((await this.ctx.storage.get("roomId")) as string | null) ?? null
-    })
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -72,7 +69,9 @@ export class TldrawDurableObject extends DurableObject<Env> {
 
     let room: TLSocketRoom<TLRecord, void>
     try {
-      room = await this.getOrCreateRoom()
+      room = await this.getOrCreateRoom({
+        skipLegacySnapshot: claims.legacy === false,
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : "Sync unavailable"
       if (message === "Board not found") {
@@ -140,9 +139,9 @@ export class TldrawDurableObject extends DurableObject<Env> {
     room[method](attachment.sessionId)
   }
 
-  private getOrCreateRoom() {
+  private getOrCreateRoom(opts?: { skipLegacySnapshot?: boolean }) {
     if (!this.roomPromise) {
-      this.roomPromise = this.loadRoom().catch((error) => {
+      this.roomPromise = this.loadRoom(opts).catch((error) => {
         this.roomPromise = null
         throw error
       })
@@ -150,14 +149,23 @@ export class TldrawDurableObject extends DurableObject<Env> {
     return this.roomPromise
   }
 
-  private async loadRoom(): Promise<TLSocketRoom<TLRecord, void>> {
+  private async loadRoom(opts?: {
+    skipLegacySnapshot?: boolean
+  }): Promise<TLSocketRoom<TLRecord, void>> {
+    if (!this.roomId) {
+      this.roomId =
+        ((await this.ctx.storage.get("roomId")) as string | null) ?? null
+    }
     if (!this.roomId) {
       throw new Error("Room id is not available")
     }
 
     const sql = new DurableObjectSqliteSyncWrapper(this.ctx.storage)
     const initialized = SQLiteSyncStorage.hasBeenInitialized(sql)
-    const snapshot = initialized ? undefined : await this.fetchLegacySnapshot(this.roomId)
+    const snapshot =
+      initialized || opts?.skipLegacySnapshot
+        ? undefined
+        : await this.fetchLegacySnapshot(this.roomId)
     const storage = new SQLiteSyncStorage<TLRecord>({
       sql,
       snapshot: snapshot as RoomSnapshot | undefined,
@@ -204,7 +212,7 @@ export class TldrawDurableObject extends DurableObject<Env> {
         headers: {
           Authorization: `Bearer ${this.env.TLDRAW_SYNC_SECRET}`,
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(2500),
       }
     )
 
@@ -231,7 +239,7 @@ export class TldrawDurableObject extends DurableObject<Env> {
             "content-type": "application/json",
           },
           body: JSON.stringify({ snapshot: room.getCurrentSnapshot() }),
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(2500),
         }
       )
     } catch (error) {

@@ -2,12 +2,8 @@ import { NextResponse } from "next/server"
 
 import { getBoardCollaborationAccess } from "@/lib/board-service"
 import { getCurrentUser } from "@/lib/current-user"
-import { getTldrawSyncSecret } from "@/lib/sync-config"
-import {
-  SYNC_TOKEN_TTL_SECONDS,
-  isBoardId,
-  signSyncToken,
-} from "@/shared/sync-token"
+import { issueBoardSyncToken } from "@/lib/issue-sync-token"
+import { isBoardId } from "@/shared/sync-token"
 
 export async function GET(
   _request: Request,
@@ -28,28 +24,20 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const secret = getTldrawSyncSecret()
-  if (!secret) {
+  const token = await issueBoardSyncToken({
+    userId: user.id,
+    userName: user.name,
+    boardId: access.board.id,
+    role: access.role,
+    canEdit: access.canEdit,
+    hasLegacySnapshot: access.hasLegacySnapshot,
+  })
+  if (!token) {
     return NextResponse.json(
       { error: "Sync is not configured" },
       { status: 500 }
     )
   }
-
-  const now = Math.floor(Date.now() / 1000)
-  const token = await signSyncToken(
-    {
-      v: 1,
-      sub: user.id,
-      boardId: access.board.id,
-      role: access.role,
-      readonly: !access.canEdit,
-      name: user.name?.trim() || "Collaborator",
-      iat: now,
-      exp: now + SYNC_TOKEN_TTL_SECONDS,
-    },
-    secret
-  )
 
   return NextResponse.json({ token })
 }

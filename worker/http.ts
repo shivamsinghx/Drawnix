@@ -1,7 +1,29 @@
+function expandOrigin(origin: string): string[] {
+  try {
+    const url = new URL(origin)
+    const hosts = new Set([url.host])
+    const portSuffix = url.port ? `:${url.port}` : ""
+    if (url.hostname === "localhost") {
+      hosts.add(`127.0.0.1${portSuffix}`)
+    }
+    if (url.hostname === "127.0.0.1") {
+      hosts.add(`localhost${portSuffix}`)
+    }
+    return [...hosts].map((host) => `${url.protocol}//${host}`)
+  } catch {
+    return [origin]
+  }
+}
+
 export function allowedOrigins(env: Env): string[] {
-  return env.APP_ORIGIN.split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean)
+  return [
+    ...new Set(
+      env.APP_ORIGIN.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+        .flatMap(expandOrigin)
+    ),
+  ]
 }
 
 export function corsHeaders(request: Request, env: Env): HeadersInit {

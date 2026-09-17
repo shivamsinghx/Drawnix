@@ -11,6 +11,8 @@ export type SyncTokenPayload = {
   role: BoardRole
   readonly: boolean
   name: string
+  /** When false, the worker can skip the Postgres snapshot fetch. */
+  legacy?: boolean
   iat: number
   exp: number
 }
@@ -84,6 +86,7 @@ function isSyncTokenPayload(value: unknown): value is SyncTokenPayload {
     (token.role === "owner" || token.role === "editor" || token.role === "viewer") &&
     typeof token.readonly === "boolean" &&
     typeof token.name === "string" &&
+    (token.legacy === undefined || typeof token.legacy === "boolean") &&
     typeof token.iat === "number" &&
     typeof token.exp === "number"
   )

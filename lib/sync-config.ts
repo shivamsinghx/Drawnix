@@ -8,7 +8,7 @@ export function getTldrawSyncSecret(): string | null {
 export function getPublicTldrawSyncUrl(): string {
   return (
     process.env.NEXT_PUBLIC_TLDRAW_SYNC_URL?.replace(/\/$/, "") ||
-    "http://localhost:8787"
+    "http://127.0.0.1:8787"
   )
 }
 

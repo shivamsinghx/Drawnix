@@ -17,13 +17,16 @@ export default {
       return new Response("Sync worker is not configured", { status: 500 })
     }
 
+    const url = new URL(request.url)
+    if (request.method === "GET" && url.pathname === "/health") {
+      return new Response("ok", { status: 200 })
+    }
+
     if (request.method === "OPTIONS") {
       const originError = rejectIfBadOrigin(request, env)
       if (originError) return originError
       return new Response(null, { status: 204, headers: corsHeaders(request, env) })
     }
-
-    const url = new URL(request.url)
 
     if (request.method === "GET" && url.pathname.startsWith("/api/connect/")) {
       const originError = rejectIfBadOrigin(request, env)

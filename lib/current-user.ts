@@ -1,7 +1,9 @@
+import { cache } from "react"
+
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const session = await auth()
   if (!session?.user) return null
 
@@ -28,4 +30,4 @@ export async function getCurrentUser() {
     email: session.user.email,
     image: session.user.image,
   }
-}
+})

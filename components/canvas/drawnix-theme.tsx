@@ -10,10 +10,30 @@ import {
   type TLUiOverrides,
 } from "tldraw"
 
-const caveat = Caveat({ subsets: ["latin"], weight: ["400", "700"] })
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "700"] })
-const comicNeue = Comic_Neue({ subsets: ["latin"], weight: ["400", "700"] })
-const oswald = Oswald({ subsets: ["latin"], weight: ["400", "700"] })
+const caveat = Caveat({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+  preload: false,
+})
+const nunito = Nunito({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+  preload: false,
+})
+const comicNeue = Comic_Neue({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+  preload: false,
+})
+const oswald = Oswald({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+  preload: false,
+})
 
 export const MIX_COLOR_NAMES = [
   "teal",

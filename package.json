@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "sync:dev": "wrangler dev --port 8787",
+    "dev": "node scripts/dev.mjs",
+    "dev:next": "next dev",
+    "sync:dev": "wrangler dev --port 8787 --ip 127.0.0.1",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
