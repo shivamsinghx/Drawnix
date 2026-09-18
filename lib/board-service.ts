@@ -1,11 +1,11 @@
 import { Prisma } from "@/generated/prisma/client"
-import { prisma } from "@/lib/prisma"
-import type { Board } from "@/lib/boards"
 import {
-  canEditRole,
-  normalizeBoardRole,
-  type BoardRole,
-} from "@/shared/sync-token"
+  accessibleBoardWhere,
+  getBoardAccess,
+} from "@/lib/board-access"
+import type { Board } from "@/lib/boards"
+import { prisma } from "@/lib/prisma"
+import { canEditRole, type BoardRole } from "@/shared/sync-token"
 
 export type BoardCollaborationAccess = {
   board: {
@@ -31,13 +31,13 @@ function toBoard(row: {
   }
 }
 
-const accessibleWhere = (userId: string) => ({
-  deletedAt: null,
-  OR: [
-    { workspace: { ownerId: userId } },
-    { members: { some: { userId } } },
-  ],
-})
+function jsonHasLegacySnapshot(data: Prisma.JsonValue): boolean {
+  if (data == null) return false
+  if (typeof data === "object" && !Array.isArray(data)) {
+    return Object.keys(data).length > 0
+  }
+  return true
+}
 
 async function getOrCreateWorkspace(userId: string) {
   const existing = await prisma.workspace.findFirst({
@@ -56,7 +56,7 @@ async function getOrCreateWorkspace(userId: string) {
 
 export async function listBoards(userId: string): Promise<Board[]> {
   const rows = await prisma.board.findMany({
-    where: accessibleWhere(userId),
+    where: accessibleBoardWhere(userId),
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,
@@ -97,11 +97,11 @@ export async function createBoard(userId: string, name: string): Promise<Board> 
 }
 
 export async function getAccessibleBoard(userId: string, boardId: string) {
+  const access = await getBoardAccess(boardId, userId)
+  if (!access.allowed) return null
+
   return prisma.board.findFirst({
-    where: {
-      id: boardId,
-      ...accessibleWhere(userId),
-    },
+    where: { id: boardId, deletedAt: null },
     select: {
       id: true,
       name: true,
@@ -116,41 +116,24 @@ export async function getBoardCollaborationAccess(
   userId: string,
   boardId: string
 ): Promise<BoardCollaborationAccess | null> {
-  const rows = await prisma.$queryRaw<
-    Array<{
-      id: string
-      name: string
-      ownerId: string
-      memberRole: string | null
-      hasLegacy: boolean
-    }>
-  >`
-    SELECT
-      b.id,
-      b.name,
-      w."ownerId" AS "ownerId",
-      m.role AS "memberRole",
-      (b.data IS NOT NULL AND b.data <> '{}'::jsonb) AS "hasLegacy"
-    FROM "Board" b
-    INNER JOIN "Workspace" w ON w.id = b."workspaceId"
-    LEFT JOIN "BoardMember" m
-      ON m."boardId" = b.id AND m."userId" = ${userId}
-    WHERE b.id = ${boardId} AND b."deletedAt" IS NULL
-    LIMIT 1
-  `
+  const access = await getBoardAccess(boardId, userId)
+  if (!access.allowed) return null
 
-  const board = rows[0]
+  const board = await prisma.board.findFirst({
+    where: { id: boardId, deletedAt: null },
+    select: {
+      id: true,
+      name: true,
+      data: true,
+    },
+  })
   if (!board) return null
 
-  const isWorkspaceOwner = board.ownerId === userId
-  if (!isWorkspaceOwner && !board.memberRole) return null
-
-  const role = isWorkspaceOwner ? "owner" : normalizeBoardRole(board.memberRole)
   return {
     board: { id: board.id, name: board.name },
-    role,
-    canEdit: canEditRole(role),
-    hasLegacySnapshot: Boolean(board.hasLegacy),
+    role: access.role,
+    canEdit: canEditRole(access.role),
+    hasLegacySnapshot: jsonHasLegacySnapshot(board.data),
   }
 }
 
@@ -183,9 +166,9 @@ export async function saveBoardData(
   boardId: string,
   data: Prisma.InputJsonValue
 ) {
-  const access = await getBoardCollaborationAccess(userId, boardId)
-  if (!access) return null
-  if (!access.canEdit) return "forbidden" as const
+  const access = await getBoardAccess(boardId, userId)
+  if (!access.allowed) return null
+  if (!canEditRole(access.role)) return "forbidden" as const
 
   return prisma.board.update({
     where: { id: boardId },
@@ -200,7 +183,7 @@ export async function deleteBoards(userId: string, boardIds: string[]) {
   await prisma.board.updateMany({
     where: {
       id: { in: boardIds },
-      ...accessibleWhere(userId),
+      ...accessibleBoardWhere(userId),
     },
     data: { deletedAt: new Date() },
   })

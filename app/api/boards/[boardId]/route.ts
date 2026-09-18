@@ -1,19 +1,22 @@
 import { NextResponse } from "next/server"
 
 import { Prisma } from "@/generated/prisma/client"
-import { getCurrentUser } from "@/lib/current-user"
+import { getBoardAccessForCurrentUser } from "@/lib/board-access"
 import { getAccessibleBoard, saveBoardData } from "@/lib/board-service"
 
 export async function GET(
   _request: Request,
   context: { params: Promise<{ boardId: string }> }
 ) {
-  const user = await getCurrentUser()
+  const { boardId } = await context.params
+  const { user, access } = await getBoardAccessForCurrentUser(boardId)
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+  if (!access.allowed) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
 
-  const { boardId } = await context.params
   const board = await getAccessibleBoard(user.id, boardId)
   if (!board) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -26,12 +29,14 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ boardId: string }> }
 ) {
-  const user = await getCurrentUser()
+  const { boardId } = await context.params
+  const { user, access } = await getBoardAccessForCurrentUser(boardId)
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
-
-  const { boardId } = await context.params
+  if (!access.allowed) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
 
   let body: unknown
   try {

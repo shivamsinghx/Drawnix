@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation"
 
 import { CanvasClient } from "@/components/canvas/canvas-client"
+import { getBoardAccessForCurrentUser } from "@/lib/board-access"
 import { getBoardCollaborationAccess } from "@/lib/board-service"
-import { getCurrentUser } from "@/lib/current-user"
 import { issueBoardSyncToken } from "@/lib/issue-sync-token"
 import { presenceColorForUser } from "@/lib/presence-color"
 import { getPublicTldrawSyncUrl } from "@/lib/sync-config"
@@ -12,34 +12,35 @@ export default async function CanvasPage({
 }: {
   params: Promise<{ boardId: string }>
 }) {
-  const [{ boardId }, user] = await Promise.all([params, getCurrentUser()])
-  if (!user) {
+  const { boardId } = await params
+  const { user, access } = await getBoardAccessForCurrentUser(boardId)
+  if (!user || !access.allowed) {
     redirect("/dashboard")
   }
 
-  const access = await getBoardCollaborationAccess(user.id, boardId)
-  if (!access) {
+  const collaboration = await getBoardCollaborationAccess(user.id, boardId)
+  if (!collaboration) {
     redirect("/dashboard")
   }
 
   const token = await issueBoardSyncToken({
     userId: user.id,
     userName: user.name,
-    boardId: access.board.id,
-    role: access.role,
-    canEdit: access.canEdit,
-    hasLegacySnapshot: access.hasLegacySnapshot,
+    boardId: collaboration.board.id,
+    role: collaboration.role,
+    canEdit: collaboration.canEdit,
+    hasLegacySnapshot: collaboration.hasLegacySnapshot,
   })
 
   return (
     <CanvasClient
-      boardId={access.board.id}
-      boardName={access.board.name}
+      boardId={collaboration.board.id}
+      boardName={collaboration.board.name}
       userId={user.id}
       userName={user.name?.trim() || user.email?.trim() || "Collaborator"}
       userColor={presenceColorForUser(user.id)}
-      role={access.role}
-      canEdit={access.canEdit}
+      role={collaboration.role}
+      canEdit={collaboration.canEdit}
       syncUrl={getPublicTldrawSyncUrl()}
       initialToken={token}
     />
