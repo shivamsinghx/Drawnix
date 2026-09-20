@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
+import { ShareBoardButton } from "@/components/canvas/share-board-button"
 import type { BoardRole } from "@/shared/sync-token"
 
 const CanvasEditor = dynamic(
@@ -77,12 +78,15 @@ export function CanvasClient({
             <h1 className="text-sm font-medium">{boardName}</h1>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full border px-2 py-1 capitalize">{role}</span>
-          {!canEdit ? (
-            <span className="rounded-full border px-2 py-1">View only</span>
-          ) : null}
-          <span className="rounded-full border px-2 py-1">{connectionLabel}</span>
+        <div className="flex items-center gap-2">
+          <ShareBoardButton boardId={boardId} boardName={boardName} />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full border px-2 py-1 capitalize">{role}</span>
+            {!canEdit ? (
+              <span className="rounded-full border px-2 py-1">View only</span>
+            ) : null}
+            <span className="rounded-full border px-2 py-1">{connectionLabel}</span>
+          </div>
         </div>
       </header>
       <div className="drawnix-dock relative min-h-0 flex-1">
