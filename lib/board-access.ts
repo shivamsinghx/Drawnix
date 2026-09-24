@@ -33,7 +33,7 @@ export function accessibleBoardWhere(userId: string): Prisma.BoardWhereInput {
   }
 }
 
-function effectiveBoardRole(input: {
+export function effectiveBoardRole(input: {
   userId: string
   workspaceOwnerId: string
   memberRole: string | null

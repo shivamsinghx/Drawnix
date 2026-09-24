@@ -3,8 +3,11 @@ import { cache } from "react"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
+/** One Auth.js session lookup per server render, shared by the layout and pages. */
+export const getAuthSession = cache(() => auth())
+
 export const getCurrentUser = cache(async () => {
-  const session = await auth()
+  const session = await getAuthSession()
   if (!session?.user) return null
 
   if (session.user.id) {

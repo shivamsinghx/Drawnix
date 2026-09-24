@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client"
 import {
   accessibleBoardWhere,
+  effectiveBoardRole,
   getBoardAccess,
 } from "@/lib/board-access"
 import type { Board } from "@/lib/boards"
@@ -31,12 +32,19 @@ function toBoard(row: {
   }
 }
 
-function jsonHasLegacySnapshot(data: Prisma.JsonValue): boolean {
-  if (data == null) return false
-  if (typeof data === "object" && !Array.isArray(data)) {
-    return Object.keys(data).length > 0
-  }
-  return true
+/**
+ * Same result as inspecting Board.data in process:
+ * null is absent, an empty object is absent, any other JSON value is present.
+ * Evaluated in SQL so the document is not returned to the app.
+ */
+function legacySnapshotSql() {
+  return Prisma.sql`
+    CASE
+      WHEN b.data IS NULL THEN false
+      WHEN jsonb_typeof(b.data) = 'object' THEN (b.data <> '{}'::jsonb)
+      ELSE true
+    END
+  `
 }
 
 async function getOrCreateWorkspace(userId: string) {
@@ -116,24 +124,46 @@ export async function getBoardCollaborationAccess(
   userId: string,
   boardId: string
 ): Promise<BoardCollaborationAccess | null> {
-  const access = await getBoardAccess(boardId, userId)
-  if (!access.allowed) return null
+  if (!boardId || !userId) return null
 
-  const board = await prisma.board.findFirst({
-    where: { id: boardId, deletedAt: null },
-    select: {
-      id: true,
-      name: true,
-      data: true,
-    },
-  })
+  const rows = await prisma.$queryRaw<
+    Array<{
+      id: string
+      name: string
+      ownerId: string
+      memberRole: string | null
+      hasLegacySnapshot: boolean
+    }>
+  >`
+    SELECT
+      b.id,
+      b.name,
+      w."ownerId" AS "ownerId",
+      m.role AS "memberRole",
+      ${legacySnapshotSql()} AS "hasLegacySnapshot"
+    FROM "Board" b
+    INNER JOIN "Workspace" w ON w.id = b."workspaceId"
+    LEFT JOIN "BoardMember" m
+      ON m."boardId" = b.id AND m."userId" = ${userId}
+    WHERE b.id = ${boardId}
+      AND b."deletedAt" IS NULL
+    LIMIT 1
+  `
+  const board = rows[0]
   if (!board) return null
+
+  const role = effectiveBoardRole({
+    userId,
+    workspaceOwnerId: board.ownerId,
+    memberRole: board.memberRole,
+  })
+  if (!role) return null
 
   return {
     board: { id: board.id, name: board.name },
-    role: access.role,
-    canEdit: canEditRole(access.role),
-    hasLegacySnapshot: jsonHasLegacySnapshot(board.data),
+    role,
+    canEdit: canEditRole(role),
+    hasLegacySnapshot: Boolean(board.hasLegacySnapshot),
   }
 }
 

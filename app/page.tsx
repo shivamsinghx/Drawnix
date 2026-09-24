@@ -3,7 +3,7 @@ import { SparklesText } from "@/components/ui/sparkles-text"
 import { Highlighter } from "@/components/ui/highlighter"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 import { LoginCard } from "@/components/login-card"
-import { auth } from "@/lib/auth"
+import { getAuthSession } from "@/lib/current-user"
 
 function firstQueryValue(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0]
@@ -17,7 +17,7 @@ export default async function Home({
 }) {
   const params = searchParams ? await searchParams : {}
   const authError = firstQueryValue(params.error)
-  const session = await auth()
+  const session = await getAuthSession()
   if (session?.user && !authError) {
     redirect("/dashboard")
   }

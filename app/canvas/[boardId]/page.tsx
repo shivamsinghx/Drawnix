@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation"
 
 import { CanvasClient } from "@/components/canvas/canvas-client"
-import { getBoardAccessForCurrentUser } from "@/lib/board-access"
 import { getBoardCollaborationAccess } from "@/lib/board-service"
+import { getCurrentUser } from "@/lib/current-user"
 import { issueBoardSyncToken } from "@/lib/issue-sync-token"
 import { presenceColorForUser } from "@/lib/presence-color"
 import { getPublicTldrawSyncUrl } from "@/lib/sync-config"
@@ -13,8 +13,8 @@ export default async function CanvasPage({
   params: Promise<{ boardId: string }>
 }) {
   const { boardId } = await params
-  const { user, access } = await getBoardAccessForCurrentUser(boardId)
-  if (!user || !access.allowed) {
+  const user = await getCurrentUser()
+  if (!user) {
     redirect("/dashboard")
   }
 

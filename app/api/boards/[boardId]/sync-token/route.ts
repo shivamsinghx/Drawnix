@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
-import { getBoardAccessForCurrentUser } from "@/lib/board-access"
 import { getBoardCollaborationAccess } from "@/lib/board-service"
+import { getCurrentUser } from "@/lib/current-user"
 import { issueBoardSyncToken } from "@/lib/issue-sync-token"
 import { isBoardId } from "@/shared/sync-token"
 
@@ -14,12 +14,9 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const { user, access } = await getBoardAccessForCurrentUser(boardId)
+  const user = await getCurrentUser()
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-  if (!access.allowed) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
   const collaboration = await getBoardCollaborationAccess(user.id, boardId)
