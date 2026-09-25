@@ -3,8 +3,10 @@ import {
   accessibleBoardWhere,
   effectiveBoardRole,
   getBoardAccess,
+  ownedBoardWhere,
+  sharedWithMeBoardWhere,
 } from "@/lib/board-access"
-import type { Board } from "@/lib/boards"
+import type { Board, SharedBoard } from "@/lib/boards"
 import { prisma } from "@/lib/prisma"
 import { canEditRole, type BoardRole } from "@/shared/sync-token"
 
@@ -31,6 +33,21 @@ function toBoard(row: {
     updatedAt: row.updatedAt.toISOString(),
   }
 }
+
+function sharerLabel(owner: { name: string | null; email: string | null }) {
+  const name = owner.name?.trim()
+  if (name) return name
+  const email = owner.email?.trim()
+  if (email) return email
+  return "Someone"
+}
+
+const boardListSelect = {
+  id: true,
+  name: true,
+  createdAt: true,
+  updatedAt: true,
+} as const
 
 /**
  * Same result as inspecting Board.data in process:
@@ -66,15 +83,42 @@ export async function listBoards(userId: string): Promise<Board[]> {
   const rows = await prisma.board.findMany({
     where: accessibleBoardWhere(userId),
     orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: boardListSelect,
   })
 
   return rows.map(toBoard)
+}
+
+export async function listOwnedBoards(userId: string): Promise<Board[]> {
+  const rows = await prisma.board.findMany({
+    where: ownedBoardWhere(userId),
+    orderBy: { updatedAt: "desc" },
+    select: boardListSelect,
+  })
+
+  return rows.map(toBoard)
+}
+
+export async function listSharedBoards(userId: string): Promise<SharedBoard[]> {
+  const rows = await prisma.board.findMany({
+    where: sharedWithMeBoardWhere(userId),
+    orderBy: { updatedAt: "desc" },
+    select: {
+      ...boardListSelect,
+      workspace: {
+        select: {
+          owner: {
+            select: { name: true, email: true },
+          },
+        },
+      },
+    },
+  })
+
+  return rows.map((row) => ({
+    ...toBoard(row),
+    sharedBy: sharerLabel(row.workspace.owner),
+  }))
 }
 
 export async function createBoard(userId: string, name: string): Promise<Board> {

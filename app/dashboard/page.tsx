@@ -1,7 +1,7 @@
 import { NotAuthenticated } from "@/components/dashboard/not-authenticated"
 import { DashboardHome } from "@/components/dashboard/dashboard-home"
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern"
-import { listBoards } from "@/lib/board-service"
+import { listOwnedBoards, listSharedBoards } from "@/lib/board-service"
 import { getCurrentUser } from "@/lib/current-user"
 
 export default async function DashboardPage() {
@@ -17,7 +17,8 @@ export default async function DashboardPage() {
         email: user.email,
         image: user.image,
       }}
-      initialBoards={await listBoards(user.id)}
+      initialBoards={await listOwnedBoards(user.id)}
+      sharedBoards={await listSharedBoards(user.id)}
     />
   )
 

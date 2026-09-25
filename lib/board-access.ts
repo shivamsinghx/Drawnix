@@ -33,6 +33,26 @@ export function accessibleBoardWhere(userId: string): Prisma.BoardWhereInput {
   }
 }
 
+/** Boards in a workspace this user owns. */
+export function ownedBoardWhere(userId: string): Prisma.BoardWhereInput {
+  return {
+    deletedAt: null,
+    workspace: { ownerId: userId },
+  }
+}
+
+/**
+ * Boards shared with this user. They have a BoardMember row and do not own
+ * the workspace, so their own boards are not listed again.
+ */
+export function sharedWithMeBoardWhere(userId: string): Prisma.BoardWhereInput {
+  return {
+    deletedAt: null,
+    members: { some: { userId } },
+    workspace: { ownerId: { not: userId } },
+  }
+}
+
 export function effectiveBoardRole(input: {
   userId: string
   workspaceOwnerId: string

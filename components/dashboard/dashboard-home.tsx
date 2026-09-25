@@ -5,7 +5,7 @@ import { signOut } from "next-auth/react"
 import { motion } from "motion/react"
 import { CheckSquare, LogOut, Trash2 } from "lucide-react"
 
-import { type Board } from "@/lib/boards"
+import { type Board, type SharedBoard } from "@/lib/boards"
 import { LightRays } from "@/components/ui/light-rays"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -32,9 +32,11 @@ type DashboardUser = {
 export function DashboardHome({
   user,
   initialBoards,
+  sharedBoards,
 }: {
   user: DashboardUser
   initialBoards: Board[]
+  sharedBoards: SharedBoard[]
 }) {
   const [boards, setBoards] = useState<Board[]>(initialBoards)
   const [selecting, setSelecting] = useState(false)
@@ -79,7 +81,8 @@ export function DashboardHome({
       | { boards?: Board[] }
       | null
     if (response.ok && payload?.boards) {
-      setBoards(payload.boards)
+      const sharedIds = new Set(sharedBoards.map((board) => board.id))
+      setBoards(payload.boards.filter((board) => !sharedIds.has(board.id)))
     }
     exitSelecting()
   }
@@ -123,14 +126,14 @@ export function DashboardHome({
           </div>
         </motion.header>
 
-        <main className="flex flex-1 flex-col justify-center py-12">
-          {boards.length === 0 ? (
+        <main className="flex flex-1 flex-col justify-center gap-12 py-12">
+          {boards.length === 0 && sharedBoards.length === 0 ? (
             <EmptyBoards />
           ) : (
             <div className="space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-medium">Your boards</h2>
+                  <h2 className="text-xl font-medium">My Boards</h2>
                   <p className="text-sm text-muted-foreground">
                     {selecting
                       ? selectedCount > 0
@@ -140,7 +143,7 @@ export function DashboardHome({
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {selecting ? (
+                  {boards.length === 0 ? null : selecting ? (
                     <>
                       <Button
                         type="button"
@@ -175,24 +178,57 @@ export function DashboardHome({
                   <NewBoardButton />
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {boards.map((board, index) => (
-                  <BoardCard
-                    key={board.id}
-                    board={board}
-                    index={index}
-                    selecting={selecting}
-                    selected={selectedIds.includes(board.id)}
-                    onToggle={toggleBoard}
-                    onDelete={(boardId) => {
-                      setSelectedIds([boardId])
-                      setConfirmOpen(true)
-                    }}
-                  />
-                ))}
-              </div>
+              {boards.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  You have not created a board yet.
+                </p>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {boards.map((board, index) => (
+                    <BoardCard
+                      key={board.id}
+                      board={board}
+                      index={index}
+                      selecting={selecting}
+                      selected={selectedIds.includes(board.id)}
+                      onToggle={toggleBoard}
+                      onDelete={(boardId) => {
+                        setSelectedIds([boardId])
+                        setConfirmOpen(true)
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
+
+          {boards.length > 0 || sharedBoards.length > 0 ? (
+            <section className="space-y-6">
+              <div>
+                <h2 className="text-xl font-medium">Shared with me</h2>
+                <p className="text-sm text-muted-foreground">
+                  Boards other people have shared with you.
+                </p>
+              </div>
+              {sharedBoards.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nothing has been shared with you yet.
+                </p>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {sharedBoards.map((board, index) => (
+                    <BoardCard
+                      key={board.id}
+                      board={board}
+                      index={index}
+                      sharedBy={board.sharedBy}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
         </main>
       </div>
 

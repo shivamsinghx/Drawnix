@@ -24,6 +24,7 @@ export function BoardCard({
   selected = false,
   onToggle,
   onDelete,
+  sharedBy,
 }: {
   board: Board
   index: number
@@ -31,6 +32,7 @@ export function BoardCard({
   selected?: boolean
   onToggle?: (boardId: string) => void
   onDelete?: (boardId: string) => void
+  sharedBy?: string
 }) {
   const card = (
     <Card
@@ -62,7 +64,10 @@ export function BoardCard({
         <CardTitle className="truncate">{board.title}</CardTitle>
       </CardHeader>
       <CardContent className="text-xs text-muted-foreground">
-        Updated {formatUpdated(board.updatedAt)}
+        {sharedBy ? <p>Shared by {sharedBy}</p> : null}
+        <p className={sharedBy ? "mt-1" : undefined}>
+          Updated {formatUpdated(board.updatedAt)}
+        </p>
       </CardContent>
     </Card>
   )
@@ -89,7 +94,7 @@ export function BoardCard({
           {card}
         </Link>
       )}
-      {!selecting ? (
+      {!selecting && !sharedBy ? (
         <button
           type="button"
           aria-label={`Delete ${board.title}`}
