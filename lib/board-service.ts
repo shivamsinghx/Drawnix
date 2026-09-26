@@ -257,7 +257,7 @@ export async function deleteBoards(userId: string, boardIds: string[]) {
   await prisma.board.updateMany({
     where: {
       id: { in: boardIds },
-      ...accessibleBoardWhere(userId),
+      ...ownedBoardWhere(userId),
     },
     data: { deletedAt: new Date() },
   })

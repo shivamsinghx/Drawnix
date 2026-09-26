@@ -79,7 +79,9 @@ export function CanvasClient({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ShareBoardButton boardId={boardId} boardName={boardName} />
+          {role === "owner" ? (
+            <ShareBoardButton boardId={boardId} boardName={boardName} />
+          ) : null}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="rounded-full border px-2 py-1 capitalize">{role}</span>
             {!canEdit ? (
@@ -97,6 +99,7 @@ export function CanvasClient({
           userColor={userColor}
           syncUrl={syncUrl}
           initialToken={initialToken}
+          canEdit={canEdit}
           onStatus={setStatus}
         />
       </div>

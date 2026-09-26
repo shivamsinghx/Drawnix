@@ -13,11 +13,13 @@ import {
   StickyNote,
   Type,
 } from "lucide-react"
-import { useIsToolSelected, useTools } from "tldraw"
+import { useIsToolSelected, useReadonly, useTools } from "tldraw"
 
 import { cn } from "@/lib/utils"
 
 type DockIcon = ComponentType<{ className?: string }>
+
+const VIEW_TOOL_IDS = new Set(["select", "hand"])
 
 const TOOLS: { id: string; label: string; icon: DockIcon }[] = [
   { id: "select", label: "Select", icon: MousePointer2 },
@@ -76,10 +78,19 @@ function DockTool({
 }
 
 export function DrawnixToolbar() {
+  const isReadonly = useReadonly()
+  const tools = isReadonly
+    ? TOOLS.filter((tool) => VIEW_TOOL_IDS.has(tool.id))
+    : TOOLS
+
   return (
     <div className="drawnix-toolbar-slot">
-      <div className="drawnix-floating-dock" role="toolbar" aria-label="Drawing tools">
-        {TOOLS.map((tool) => (
+      <div
+        className="drawnix-floating-dock"
+        role="toolbar"
+        aria-label={isReadonly ? "View tools" : "Drawing tools"}
+      >
+        {tools.map((tool) => (
           <DockTool key={tool.id} {...tool} />
         ))}
       </div>

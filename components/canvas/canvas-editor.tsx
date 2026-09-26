@@ -35,6 +35,7 @@ export function CanvasEditor({
   userColor,
   syncUrl,
   initialToken,
+  canEdit = true,
   onStatus,
 }: {
   boardId: string
@@ -43,6 +44,7 @@ export function CanvasEditor({
   userColor: string
   syncUrl: string
   initialToken?: string | null
+  canEdit?: boolean
   onStatus?: (status: "connecting" | "live" | "reconnecting" | "error") => void
 }) {
   const tokenRef = useRef(initialToken ?? null)
@@ -144,6 +146,9 @@ export function CanvasEditor({
       themes={drawnixThemes}
       overrides={drawnixUiOverrides}
       onMount={(editor: Editor) => {
+        if (!canEdit) {
+          editor.updateInstanceState({ isReadonly: true })
+        }
         const mix = getSavedPaletteMix()
         if (mix !== "classic") {
           editor.updateTheme(createDrawnixTheme(mix))
