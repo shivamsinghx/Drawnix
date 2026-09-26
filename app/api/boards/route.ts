@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { getCurrentUser } from "@/lib/current-user"
+import { parseBoardName } from "@/lib/boards"
 import { createBoard, deleteBoards, listBoards } from "@/lib/board-service"
 
 export async function GET() {
@@ -26,17 +27,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  const name =
-    typeof body === "object" &&
-    body !== null &&
-    "name" in body &&
-    typeof body.name === "string"
-      ? body.name.trim()
-      : ""
-
-  if (!name || name.length > 80) {
-    return NextResponse.json({ error: "A board name is required" }, { status: 400 })
+  const parsedName = parseBoardName(
+    typeof body === "object" && body !== null && "name" in body
+      ? body.name
+      : undefined
+  )
+  if (!parsedName.ok) {
+    return NextResponse.json({ error: parsedName.error }, { status: 400 })
   }
+  const name = parsedName.name
 
   const board = await createBoard(user.id, name)
   return NextResponse.json({ board }, { status: 201 })

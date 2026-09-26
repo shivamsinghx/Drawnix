@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { motion } from "motion/react"
 import { Check, Trash2 } from "lucide-react"
 
 import type { Board } from "@/lib/boards"
+import { RenameBoardButton, RenameBoardDialog } from "@/components/rename-board-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +26,7 @@ export function BoardCard({
   selected = false,
   onToggle,
   onDelete,
+  onRenamed,
   sharedBy,
 }: {
   board: Board
@@ -32,8 +35,10 @@ export function BoardCard({
   selected?: boolean
   onToggle?: (boardId: string) => void
   onDelete?: (boardId: string) => void
+  onRenamed?: (boardId: string, name: string) => void
   sharedBy?: string
 }) {
+  const [renameOpen, setRenameOpen] = useState(false)
   const card = (
     <Card
       className={cn(
@@ -95,14 +100,28 @@ export function BoardCard({
         </Link>
       )}
       {!selecting && !sharedBy ? (
-        <button
-          type="button"
-          aria-label={`Delete ${board.title}`}
-          className="absolute top-3 right-3 z-10 flex size-8 cursor-pointer items-center justify-center rounded-full border border-foreground/10 bg-background/90 text-muted-foreground opacity-0 shadow-sm transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-          onClick={() => onDelete?.(board.id)}
-        >
-          <Trash2 className="size-3.5" />
-        </button>
+        <>
+          <RenameBoardButton
+            label={`Rename ${board.title}`}
+            className="absolute top-3 right-12 z-10 border border-foreground/10 bg-background/90 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+            onClick={() => setRenameOpen(true)}
+          />
+          <button
+            type="button"
+            aria-label={`Delete ${board.title}`}
+            className="absolute top-3 right-3 z-10 flex size-8 cursor-pointer items-center justify-center rounded-full border border-foreground/10 bg-background/90 text-muted-foreground opacity-0 shadow-sm transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+            onClick={() => onDelete?.(board.id)}
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+          <RenameBoardDialog
+            boardId={board.id}
+            boardName={board.title}
+            open={renameOpen}
+            onOpenChange={setRenameOpen}
+            onRenamed={(name) => onRenamed?.(board.id, name)}
+          />
+        </>
       ) : null}
     </motion.div>
   )

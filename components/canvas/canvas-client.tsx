@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
+import { RenameBoardButton, RenameBoardDialog } from "@/components/rename-board-dialog"
 import { ShareBoardButton } from "@/components/canvas/share-board-button"
 import type { BoardRole } from "@/shared/sync-token"
 
@@ -47,6 +48,8 @@ export function CanvasClient({
   syncUrl: string
   initialToken?: string | null
 }) {
+  const [title, setTitle] = useState(boardName)
+  const [renameOpen, setRenameOpen] = useState(false)
   const [status, setStatus] = useState<
     "connecting" | "live" | "reconnecting" | "error"
   >("connecting")
@@ -75,12 +78,17 @@ export function CanvasClient({
             <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase">
               Board
             </p>
-            <h1 className="text-sm font-medium">{boardName}</h1>
+            <div className="flex items-center gap-1">
+              <h1 className="text-sm font-medium">{title}</h1>
+              {role === "owner" ? (
+                <RenameBoardButton onClick={() => setRenameOpen(true)} />
+              ) : null}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {role === "owner" ? (
-            <ShareBoardButton boardId={boardId} boardName={boardName} />
+            <ShareBoardButton boardId={boardId} boardName={title} />
           ) : null}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="rounded-full border px-2 py-1 capitalize">{role}</span>
@@ -91,6 +99,15 @@ export function CanvasClient({
           </div>
         </div>
       </header>
+      {role === "owner" ? (
+        <RenameBoardDialog
+          boardId={boardId}
+          boardName={title}
+          open={renameOpen}
+          onOpenChange={setRenameOpen}
+          onRenamed={setTitle}
+        />
+      ) : null}
       <div className="drawnix-dock relative min-h-0 flex-1">
         <CanvasEditor
           boardId={boardId}

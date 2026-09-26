@@ -196,6 +196,13 @@ export function DashboardHome({
                         setSelectedIds([boardId])
                         setConfirmOpen(true)
                       }}
+                      onRenamed={(boardId, name) => {
+                        setBoards((current) =>
+                          current.map((board) =>
+                            board.id === boardId ? { ...board, title: name } : board
+                          )
+                        )
+                      }}
                     />
                   ))}
                 </div>

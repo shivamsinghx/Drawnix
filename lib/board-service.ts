@@ -6,7 +6,7 @@ import {
   ownedBoardWhere,
   sharedWithMeBoardWhere,
 } from "@/lib/board-access"
-import type { Board, SharedBoard } from "@/lib/boards"
+import { parseBoardName, type Board, type SharedBoard } from "@/lib/boards"
 import { prisma } from "@/lib/prisma"
 import { canEditRole, type BoardRole } from "@/shared/sync-token"
 
@@ -233,6 +233,32 @@ export async function cacheBoardSnapshot(
     data: { data },
     select: { id: true, updatedAt: true },
   })
+}
+
+export async function renameBoard(userId: string, boardId: string, nameInput: unknown) {
+  const access = await getBoardAccess(boardId, userId)
+  if (!access.allowed) {
+    return { ok: false as const, status: 404 as const, error: "Not found" }
+  }
+  if (access.role !== "owner") {
+    return {
+      ok: false as const,
+      status: 403 as const,
+      error: "Only the board owner can rename this board",
+    }
+  }
+
+  const parsed = parseBoardName(nameInput)
+  if (!parsed.ok) {
+    return { ok: false as const, status: 400 as const, error: parsed.error }
+  }
+
+  await prisma.board.update({
+    where: { id: boardId },
+    data: { name: parsed.name },
+  })
+
+  return { ok: true as const, name: parsed.name }
 }
 
 export async function saveBoardData(

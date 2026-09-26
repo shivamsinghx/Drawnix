@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { Prisma } from "@/generated/prisma/client"
 import { getBoardAccessForCurrentUser } from "@/lib/board-access"
-import { getAccessibleBoard, saveBoardData } from "@/lib/board-service"
+import { getAccessibleBoard, renameBoard, saveBoardData } from "@/lib/board-service"
 
 export async function GET(
   _request: Request,
@@ -45,14 +45,30 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
+  const record =
+    typeof body === "object" && body !== null ? (body as Record<string, unknown>) : null
+
+  if (record && "name" in record) {
+    if ("data" in record) {
+      return NextResponse.json(
+        { error: "Send a board name or a snapshot, not both" },
+        { status: 400 }
+      )
+    }
+    const renamed = await renameBoard(user.id, boardId, record.name)
+    if (!renamed.ok) {
+      return NextResponse.json({ error: renamed.error }, { status: renamed.status })
+    }
+    return NextResponse.json({ name: renamed.name })
+  }
+
   const data =
-    typeof body === "object" &&
-    body !== null &&
-    "data" in body &&
-    typeof body.data === "object" &&
-    body.data !== null &&
-    !Array.isArray(body.data)
-      ? (body.data as Prisma.InputJsonValue)
+    record &&
+    "data" in record &&
+    typeof record.data === "object" &&
+    record.data !== null &&
+    !Array.isArray(record.data)
+      ? (record.data as Prisma.InputJsonValue)
       : null
 
   if (!data) {
